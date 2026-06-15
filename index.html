@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DZI SMS TOOL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#0a0a0a;--s1:#111;--s2:#181818;--s3:#222;
+      --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
+      --tx:#f0f0f0;--fg:rgba(240,240,240,.6);--mu:rgba(240,240,240,.3);
+      --white:#fff;--gray:#888;--lgray:#ccc;
+      --red:#ff4444;--green:#44ff88;--orange:#ffaa44;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--tx);font-family:"Rajdhani",sans-serif;min-height:100vh;overflow-x:hidden}
+
+    /* Subtle grain overlay */
+    body::before{content:"";position:fixed;inset:0;background:
+      radial-gradient(ellipse 70% 40% at 15% 10%,rgba(255,255,255,.03),transparent),
+      radial-gradient(ellipse 50% 60% at 85% 90%,rgba(255,255,255,.02),transparent);
+      pointer-events:none;z-index:0}
+
+    /* NAV */
+    #nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;background:rgba(10,10,10,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd)}
+    #nav::after{content:"";position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent)}
+    .logo{font-family:"Orbitron",sans-serif;font-size:16px;font-weight:900;letter-spacing:3px;color:#fff}
+    .logo span{color:var(--gray)}
+    .nav-badge{font-size:9px;background:rgba(255,255,255,.06);border:1px solid var(--bd2);color:var(--lgray);padding:3px 10px;border-radius:4px;font-weight:700;letter-spacing:2px;font-family:"Orbitron",sans-serif}
+
+    /* PAGE */
+    .page{max-width:480px;margin:0 auto;padding:28px 16px 80px;position:relative;z-index:1}
+
+    /* CARD */
+    .card{background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:22px;margin-bottom:14px;position:relative;overflow:hidden}
+    .card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent)}
+    .card-title{font-family:"Orbitron",sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;color:var(--lgray);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+    .card-title svg{opacity:.5}
+
+    /* FORM */
+    .field{margin-bottom:14px}
+    .field label{font-size:11px;font-weight:700;color:var(--mu);letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:7px}
+    .field input{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;padding:13px 15px;color:var(--tx);font-size:16px;font-family:"Rajdhani",sans-serif;font-weight:600;outline:none;transition:border-color .2s,background .2s}
+    .field input:focus{border-color:rgba(255,255,255,.3);background:var(--s3)}
+    .field input::placeholder{color:var(--mu)}
+
+    /* BUTTONS */
+    .btn-primary{width:100%;padding:14px;background:linear-gradient(135deg,#fff,#ccc);border:none;border-radius:12px;color:#000;font-size:14px;font-weight:800;font-family:"Rajdhani",sans-serif;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-primary:hover{opacity:.88}
+    .btn-primary:active{transform:scale(.98)}
+    .btn-primary:disabled{opacity:.3;cursor:not-allowed;transform:none}
+    .btn-danger{width:100%;padding:12px;background:rgba(255,68,68,.08);border:1.5px solid rgba(255,68,68,.2);border-radius:12px;color:#ff6666;font-size:13px;font-weight:700;font-family:"Rajdhani",sans-serif;letter-spacing:1px;cursor:pointer;transition:all .2s}
+    .btn-danger:hover:not(:disabled){background:rgba(255,68,68,.15);border-color:rgba(255,68,68,.4)}
+    .btn-danger:disabled{opacity:.3;cursor:not-allowed}
+
+    /* STATUS */
+    .status-bar{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:13px 15px;font-size:13px;color:var(--fg);min-height:46px;display:flex;align-items:center;gap:10px}
+    .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .dot.idle{background:var(--mu)}
+    .dot.running{background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1s infinite}
+    .dot.stopped{background:var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* PROGRESS */
+    .prog-wrap{margin-top:14px;display:none}
+    .prog-wrap.show{display:block}
+    .prog-bar-bg{background:rgba(255,255,255,.06);border-radius:99px;height:5px;overflow:hidden;margin-bottom:7px}
+    .prog-bar{height:100%;background:linear-gradient(90deg,#fff,#888);border-radius:99px;transition:width .4s ease;width:0%}
+    .prog-text{font-size:11px;color:var(--mu);text-align:center;letter-spacing:.5px}
+
+    /* LOG */
+    .log-box{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:12px;height:190px;overflow-y:auto;font-size:11.5px;font-family:monospace;line-height:1.8}
+    .log-box::-webkit-scrollbar{width:3px}
+    .log-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+    .log-entry{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+    .log-entry.ok{color:#66ffaa}
+    .log-entry.err{color:#ff6666}
+    .log-entry.info{color:var(--fg)}
+
+    /* ADMIN CARD */
+    .admin-card{background:linear-gradient(135deg,var(--s1),var(--s2));border:1px solid var(--bd2);border-radius:16px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+    .admin-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent)}
+    .admin-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .admin-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#333,#555);border:2px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;overflow:hidden}
+    .admin-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .admin-name{font-size:16px;font-weight:800;color:var(--white);letter-spacing:.5px}
+    .admin-role{font-size:11px;color:var(--gray);margin-top:2px;letter-spacing:.5px}
+    .contact-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .contact-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;font-family:"Rajdhani",sans-serif;letter-spacing:.5px;text-decoration:none;transition:all .2s;border:1px solid}
+    .btn-zalo{background:rgba(0,120,255,.1);border-color:rgba(0,120,255,.25);color:#4da6ff}
+    .btn-zalo:hover{background:rgba(0,120,255,.2)}
+    .btn-tele{background:rgba(0,136,204,.1);border-color:rgba(0,136,204,.25);color:#4ab8e8}
+    .btn-tele:hover{background:rgba(0,136,204,.2)}
+    .btn-tiktok{background:rgba(255,255,255,.06);border-color:var(--bd2);color:var(--lgray)}
+    .btn-tiktok:hover{background:rgba(255,255,255,.1)}
+
+    /* DIVIDER */
+    .divider{display:flex;align-items:center;gap:12px;margin:4px 0 14px;color:var(--mu);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+    .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--bd)}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--s1);border:1px solid var(--bd2);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;transition:transform .3s;z-index:9999;white-space:nowrap;pointer-events:none;color:var(--tx)}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+
+<div id="nav">
+  <div class="logo">DZI <span>·</span> SMS</div>
+  <div class="nav-badge">TOOL v2</div>
+</div>
+
+<div class="page">
+
+  <!-- ADMIN CARD -->
+  <div class="admin-card">
+    <div class="admin-header">
+      <div class="admin-avatar">
+        <img src="admin.jpg" alt="DZI" onerror="this.parentElement.innerHTML='👨‍💻'"/>
+      </div>
+      <div>
+        <div class="admin-name">Nguyễn Hoàng Khánh Nam</div>
+        <div class="admin-role">DZI · Founder & Developer · 2006</div>
+      </div>
+    </div>
+    <div class="contact-btns">
+      <a class="contact-btn btn-zalo" href="https://zalo.me/0993329535" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-4H7l5-8v4h4l-5 8z"/></svg>
+        Zalo
+      </a>
+      <a class="contact-btn btn-tele" href="https://t.me/dzimeomeo" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.68 8.26l-2.05 9.66c-.15.68-.55.84-1.11.52l-3.07-2.26-1.48 1.43c-.16.16-.3.3-.62.3l.22-3.12 5.67-5.12c.25-.22-.05-.34-.38-.12L6.97 14.6 3.94 13.6c-.66-.21-.67-.66.14-.97l11.16-4.3c.55-.2 1.03.13.44.93z"/></svg>
+        Telegram
+      </a>
+      <a class="contact-btn btn-tiktok" href="https://tiktok.com/@hkhanhnam206" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V9.32a8.16 8.16 0 004.77 1.52V7.39a4.85 4.85 0 01-1-.7z"/></svg>
+        @hkhanhnam206
+      </a>
+    </div>
+  </div>
+
+  <div class="divider">Spam SMS</div>
+
+  <!-- FORM -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.87a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Cấu hình
+    </div>
+
+    <div class="field">
+      <label>Số điện thoại</label>
+      <input id="inp-phone" type="tel" placeholder="0xxxxxxxxx" maxlength="10" inputmode="numeric"/>
+    </div>
+    <div class="field">
+      <label>Số lần spam</label>
+      <input id="inp-times" type="number" placeholder="10" min="1" max="9999"/>
+    </div>
+
+    <button class="btn-primary" id="btn-start" onclick="startSpam()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      BẮT ĐẦU SPAM
+    </button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Trạng thái
+    </div>
+
+    <div class="status-bar" id="status-bar">
+      <div class="dot idle" id="status-dot"></div>
+      <span id="status-text">Chờ...</span>
+    </div>
+
+    <div class="prog-wrap" id="prog-wrap">
+      <div class="prog-bar-bg"><div class="prog-bar" id="prog-bar"></div></div>
+      <div class="prog-text" id="prog-text">0 / 0</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <button class="btn-danger" id="btn-stop" onclick="stopSpam()" disabled>
+        🛑 Dừng Spam
+      </button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      <span style="display:flex;align-items:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Log
+      </span>
+      <span onclick="clearLog()" style="font-size:10px;color:var(--mu);cursor:pointer;font-weight:700;letter-spacing:1px">XÓA</span>
+    </div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+
+
+  <!-- FOOTER -->
+  <div style="text-align:center;padding:24px 0 40px;position:relative;z-index:1">
+    <div style="font-size:10px;color:rgba(255,255,255,.15);letter-spacing:2px;font-family:'Orbitron',sans-serif;margin-bottom:6px">© <span id="ft-year"></span> DZI MEO MEO</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.08);letter-spacing:1px">All rights reserved · <span id="ft-time" style="font-family:monospace"></span></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '';
+let sessionId = null;
+let polling = null;
+let lastDone = -1;
+
+function toast(msg, color='#ccc') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function log(msg, type='info') {
+  const box = document.getElementById('log-box');
+  const time = new Date().toLocaleTimeString('vi-VN');
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  div.textContent = `[${time}] ${msg}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() { document.getElementById('log-box').innerHTML = ''; }
+
+function setStatus(state, text) {
+  document.getElementById('status-dot').className = 'dot ' + state;
+  document.getElementById('status-text').textContent = text;
+}
+
+function setProgress(cur, total) {
+  document.getElementById('prog-wrap').classList.add('show');
+  const pct = total > 0 ? Math.round(cur/total*100) : 0;
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${cur} / ${total} (${pct}%)`;
+}
+
+async function startSpam() {
+  const phone = document.getElementById('inp-phone').value.trim();
+  const times = parseInt(document.getElementById('inp-times').value);
+
+  if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+    toast('❌ Số điện thoại phải đúng 10 số!', '#ff6666'); return;
+  }
+  if (!times || times < 1) {
+    toast('❌ Số lần phải >= 1!', '#ff6666'); return;
+  }
+
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+  lastDone = -1;
+  setStatus('running', `Đang spam ${phone.slice(0,3)}***${phone.slice(-3)} — ${times} lần`);
+  log(`▶ Bắt đầu: ${phone.slice(0,3)}***${phone.slice(-3)}, ${times} lần`, 'info');
+
+  try {
+    const r = await fetch(API + '/api/sms/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phone, times})
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Lỗi server');
+    sessionId = d.session_id;
+    log(`Session: ${sessionId}`, 'info');
+    startPolling();
+  } catch(e) {
+    toast('❌ ' + e.message, '#ff6666');
+    log('❌ Lỗi: ' + e.message, 'err');
+    resetUI();
+  }
+}
+
+function startPolling() {
+  polling = setInterval(async () => {
+    if (!sessionId) return;
+    try {
+      const r = await fetch(API + '/api/sms/status/' + sessionId);
+      const d = await r.json();
+      setProgress(d.done, d.total);
+      if (d.done !== lastDone && d.last_msg) {
+        log(d.last_msg, d.last_ok ? 'ok' : 'err');
+        lastDone = d.done;
+      }
+      if (!d.running) {
+        clearInterval(polling);
+        if (d.done >= d.total) {
+          setStatus('idle', `✅ Hoàn thành ${d.done}/${d.total}`);
+          log(`✅ Xong! ${d.done}/${d.total}`, 'ok');
+          toast('✅ Spam hoàn thành!', '#66ffaa');
+        } else {
+          setStatus('stopped', `⏹ Dừng tại ${d.done}/${d.total}`);
+          log(`⏹ Dừng tại ${d.done}/${d.total}`, 'err');
+        }
+        resetUI();
+        sessionId = null;
+      }
+    } catch(e) {}
+  }, 1000);
+}
+
+async function stopSpam() {
+  if (!sessionId) return;
+  try {
+    await fetch(API + '/api/sms/stop/' + sessionId, {method:'POST'});
+    log('⏹ Đã yêu cầu dừng...', 'info');
+    toast('⏹ Đang dừng...', '#ffaa44');
+  } catch(e) {}
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('ft-year').textContent = now.getFullYear();
+  document.getElementById('ft-time').textContent = now.toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+function resetUI() {
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+}
+</script>
+</body>
+</html>
+<!-- FOOTER sẽ được inject bởi JS -->
