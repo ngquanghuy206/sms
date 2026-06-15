@@ -179,8 +179,8 @@
       <input id="inp-phone" type="tel" placeholder="0xxxxxxxxx" maxlength="10" inputmode="numeric"/>
     </div>
     <div class="field">
-      <label>Số lần spam</label>
-      <input id="inp-times" type="number" placeholder="10" min="1" max="9999"/>
+      <label>Số lần spam <span style="color:#888;font-size:10px;font-weight:400">(tối đa 20 lần · cooldown 2 phút)</span></label>
+      <input id="inp-times" type="number" placeholder="10" min="1" max="20"/>
     </div>
 
     <button class="btn-primary" id="btn-start" onclick="startSpam()">
@@ -298,13 +298,17 @@ async function startSpam() {
       body: JSON.stringify({phone, times})
     });
     const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Lỗi server');
+    if (!r.ok) {
+      const msg = d.detail || d.error || 'Lỗi server';
+      throw new Error(msg);
+    }
     sessionId = d.session_id;
-    log(`Session: ${sessionId}`, 'info');
+    if (d.note) log(`⚠️ ${d.note}`, 'info');
+    log(`Session: ${sessionId} — ${d.allowed} lần`, 'info');
     startPolling();
   } catch(e) {
     toast('❌ ' + e.message, '#ff6666');
-    log('❌ Lỗi: ' + e.message, 'err');
+    log('❌ ' + e.message, 'err');
     resetUI();
   }
 }
