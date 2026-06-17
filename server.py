@@ -13,35 +13,27 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def root():
     return FileResponse(os.path.join(BASE_DIR, "index.html"))
 
-# ── Giới hạn theo số điện thoại ──
-PHONE_LIMIT    = 20     # tối đa 20 lần / lượt
-PHONE_COOLDOWN = 120    # cooldown 2 phút
-phone_usage: dict = {}  # { phone: {"count": int, "reset_at": float} }
+PHONE_LIMIT    = 20
+PHONE_COOLDOWN = 120
+phone_usage: dict = {}
 phone_lock = threading.Lock()
 
 def check_and_consume(phone: str, requested: int):
-    """
-    Trả về (allowed, error_msg).
-    allowed = số lần thực tế được spam (0 nếu đang cooldown).
-    """
     now = time.time()
     with phone_lock:
-        info = phone_usage.get(phone, {"count": 0, "reset_at": 0})
+        info = phone_usage.get(phone, {"count": 0, "reset_at": now + PHONE_COOLDOWN})
         if now >= info["reset_at"]:
             info = {"count": 0, "reset_at": now + PHONE_COOLDOWN}
-        
-        remaining_quota = PHONE_LIMIT - info["count"]
-        if remaining_quota <= 0:
+        remaining = PHONE_LIMIT - info["count"]
+        if remaining <= 0:
             wait = int(info["reset_at"] - now)
             m, s = wait // 60, wait % 60
             return 0, f"⏳ Số {phone[:3]}***{phone[-3:]} đang cooldown! Thử lại sau {m}p{s:02d}s"
-        
-        allowed = min(requested, remaining_quota)
+        allowed = min(requested, remaining)
         info["count"] += allowed
         phone_usage[phone] = info
         return allowed, ""
 
-# ── Session store ──
 sessions: dict = {}
 
 class StartReq(BaseModel):
@@ -72,7 +64,6 @@ def sms_start(req: StartReq):
         "last_ok": True,
     }
     sessions[sid] = session
-
     threading.Thread(target=_spam_loop, args=(session,), daemon=True).start()
     note = f"Giới hạn {PHONE_LIMIT} lần/2 phút — sẽ spam {allowed} lần." if allowed < req.times else ""
     return JSONResponse({"ok": True, "session_id": sid, "allowed": allowed, "note": note})
@@ -98,23 +89,17 @@ def sms_stop(sid: str):
     s["stop_event"].set()
     return JSONResponse({"ok": True})
 
-def _run_script(script_name: str, phone: str):
-    path = os.path.join(BASE_DIR, script_name)
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"{script_name} không tìm thấy")
-    result = subprocess.run(
-        [sys.executable, path, phone, "1"],
-        timeout=60,
-        capture_output=True,
-        text=True
-    )
-    return result
-
 def _spam_loop(session: dict):
     phone  = session["phone"]
     total  = session["total"]
     stop   = session["stop_event"]
-    scripts = [s for s in ["smsv2.py", "smsfull.py"] if os.path.exists(os.path.join(BASE_DIR, s))]
+
+    # Tìm file smsv2.py và smsfull.py cùng thư mục server
+    scripts = []
+    for name in ["smsv2.py", "smsfull.py"]:
+        path = os.path.join(BASE_DIR, name)
+        if os.path.exists(path):
+            scripts.append(path)
 
     if not scripts:
         session["last_msg"] = "❌ Không tìm thấy smsv2.py hoặc smsfull.py!"
@@ -126,10 +111,13 @@ def _spam_loop(session: dict):
         if stop.is_set():
             break
         try:
+            # Gọi đúng như sms.py: python smsv2.py <phone> 1
             for script in scripts:
                 if stop.is_set():
                     break
-                _run_script(script, phone)
+                subprocess.Popen(
+                    [sys.executable, script, phone, "1"]
+                ).wait()
 
             session["done"] += 1
             session["last_msg"] = f"✅ Lần {session['done']}/{total} — {phone[:3]}***{phone[-3:]}"
@@ -147,4 +135,4 @@ if __name__ == "__main__":
     import uvicorn
     PORT = int(os.environ.get("PORT", 8000))
     print(f"🚀 DZI SMS Server — http://localhost:{PORT}")
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=PORT
