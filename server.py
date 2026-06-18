@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os, uuid, threading, time, subprocess, sys
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -135,4 +136,4 @@ if __name__ == "__main__":
     import uvicorn
     PORT = int(os.environ.get("PORT", 8000))
     print(f"🚀 DZI SMS Server — http://localhost:{PORT}")
-    uvicorn.run(app, host="0.0.0.0", port=PORT
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
